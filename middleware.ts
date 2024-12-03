@@ -1,21 +1,17 @@
-import { getAuth } from '@clerk/nextjs/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-const protectedRoute = (path: string): boolean => {
-  const protectedRoutes = ['/', '/upcoming', '/meeting', '/previous', '/recordings', '/personal-room'];
-  return protectedRoutes.some((route) => path.startsWith(route));
-};
+const protectedRoute = createRouteMatcher([
+  '/',
+  '/upcoming',
+  '/meeting(.*)',
+  '/previous',
+  '/recordings',
+  '/personal-room',
+]);
 
-export default function middleware(req: NextRequest) {
-  const url = req.nextUrl; // Use nextUrl instead of creating a new URL object
-  if (protectedRoute(url.pathname)) {
-    const auth = getAuth(req); // Now `req` is a `NextRequest` object
-    if (!auth.userId) {
-      return NextResponse.redirect(new URL('/sign-in', req.url)); // Redirect to sign-in page
-    }
-  }
-  return NextResponse.next(); // Allow request to proceed if authenticated
-}
+export default clerkMiddleware((auth, req) => {
+  if (protectedRoute(req)) auth().protect();
+});
 
 export const config = {
   matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
