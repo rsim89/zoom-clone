@@ -1,19 +1,20 @@
 import { getAuth } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const protectedRoute = (path: string): boolean => {
   const protectedRoutes = ['/', '/upcoming', '/meeting', '/previous', '/recordings', '/personal-room'];
   return protectedRoutes.some((route) => path.startsWith(route));
 };
 
-export default async function middleware(req: Request) {
-  const url = new URL(req.url);
+export default function middleware(req: NextRequest) {
+  const url = req.nextUrl; // Use nextUrl instead of creating a new URL object
   if (protectedRoute(url.pathname)) {
-    const auth = getAuth(req);
+    const auth = getAuth(req); // Now `req` is a `NextRequest` object
     if (!auth.userId) {
-      return new Response('Unauthorized', { status: 401 });
+      return NextResponse.redirect(new URL('/sign-in', req.url)); // Redirect to sign-in page
     }
   }
-  return new Response(null, { status: 200 });
+  return NextResponse.next(); // Allow request to proceed if authenticated
 }
 
 export const config = {
